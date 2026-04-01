@@ -1,23 +1,22 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService, Item, ItemCreate } from './services/api.service';
 
 @Component({
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
 })
 export class AppComponent implements OnInit {
+  private api = inject(ApiService);
+
   title = 'Lab Tooling';
   healthStatus = '';
   items: Item[] = [];
   newItem: ItemCreate = { name: '', description: '' };
   loading = false;
   error = '';
-
-  constructor(private api: ApiService) {}
 
   ngOnInit(): void {
     this.checkHealth();
