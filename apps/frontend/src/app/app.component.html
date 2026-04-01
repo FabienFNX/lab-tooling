@@ -28,14 +28,24 @@
 
   <section class="items-section">
     <h2>Items</h2>
-    <p *ngIf="loading">Loading...</p>
-    <p *ngIf="error" class="error-msg">{{ error }}</p>
-    <p *ngIf="!loading && items.length === 0 && !error">No items yet.</p>
+    @if (loading) {
+      <p>Loading...</p>
+    }
+    @if (error) {
+      <p class="error-msg">{{ error }}</p>
+    }
+    @if (!loading && items.length === 0 && !error) {
+      <p>No items yet.</p>
+    }
     <ul>
-      <li *ngFor="let item of items">
-        <strong>{{ item.name }}</strong>
-        <span *ngIf="item.description"> — {{ item.description }}</span>
-      </li>
+      @for (item of items; track item.id) {
+        <li>
+          <strong>{{ item.name }}</strong>
+          @if (item.description) {
+            <span> — {{ item.description }}</span>
+          }
+        </li>
+      }
     </ul>
   </section>
 </div>
