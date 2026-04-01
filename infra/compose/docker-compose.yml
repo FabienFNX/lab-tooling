@@ -1,0 +1,25 @@
+services:
+  backend:
+    build:
+      context: ../../apps/backend
+      dockerfile: Dockerfile
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ../../apps/backend:/app
+      - ../../data/sqlite:/data
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-sqlite:////data/app.db}
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ../../
+      dockerfile: apps/frontend/Dockerfile
+    ports:
+      - "${FRONTEND_PORT:-4200}:4200"
+    volumes:
+      - ../../apps/frontend/src:/app/apps/frontend/src
+    depends_on:
+      - backend
+    restart: unless-stopped

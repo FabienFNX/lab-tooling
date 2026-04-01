@@ -1,0 +1,41 @@
+<div class="container">
+  <header>
+    <h1>{{ title }}</h1>
+    <div class="health" [class.ok]="healthStatus === 'ok'" [class.error]="healthStatus !== 'ok' && healthStatus !== ''">
+      <span>Backend: {{ healthStatus || 'checking...' }}</span>
+    </div>
+  </header>
+
+  <section class="form-section">
+    <h2>Add Item</h2>
+    <form (ngSubmit)="createItem()">
+      <input
+        type="text"
+        [(ngModel)]="newItem.name"
+        name="name"
+        placeholder="Item name"
+        required
+      />
+      <input
+        type="text"
+        [(ngModel)]="newItem.description"
+        name="description"
+        placeholder="Description (optional)"
+      />
+      <button type="submit">Add</button>
+    </form>
+  </section>
+
+  <section class="items-section">
+    <h2>Items</h2>
+    <p *ngIf="loading">Loading...</p>
+    <p *ngIf="error" class="error-msg">{{ error }}</p>
+    <p *ngIf="!loading && items.length === 0 && !error">No items yet.</p>
+    <ul>
+      <li *ngFor="let item of items">
+        <strong>{{ item.name }}</strong>
+        <span *ngIf="item.description"> — {{ item.description }}</span>
+      </li>
+    </ul>
+  </section>
+</div>
