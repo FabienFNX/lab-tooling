@@ -6,6 +6,7 @@ import {
   GitlabGroup,
   GitlabProject,
   GitlabMember,
+  AddEverywhereResult,
 } from '../../services/gitlab.service';
 
 type Tab = 'users' | 'groups' | 'projects';
@@ -36,6 +37,7 @@ export class GitlabComponent implements OnInit {
 
   expandedGroupId = signal<number | null>(null);
   expandedProjectId = signal<number | null>(null);
+  expandedUserId = signal<number | null>(null);
 
   groupMembers = signal<Record<number, GitlabMember[]>>({});
   projectMembers = signal<Record<number, GitlabMember[]>>({});
@@ -46,6 +48,12 @@ export class GitlabComponent implements OnInit {
   addMemberLoading = signal(false);
   addMemberError = signal('');
   addMemberSuccess = signal('');
+
+  // Add-to-all form state
+  bulkAccessLevel = 30;
+  addToAllLoading = signal(false);
+  addToAllError = signal('');
+  addToAllResult = signal<AddEverywhereResult | null>(null);
 
   readonly accessLevels = [
     { value: 10, label: 'Guest' },
@@ -107,6 +115,39 @@ export class GitlabComponent implements OnInit {
         this.projectsLoading.set(false);
       },
     });
+  }
+
+  // ── User expansion (add to all) ─────────────────────────────────────────
+
+  toggleUser(userId: number): void {
+    if (this.expandedUserId() === userId) {
+      this.expandedUserId.set(null);
+    } else {
+      this.expandedUserId.set(userId);
+      this.resetAddToAllForm();
+    }
+  }
+
+  addUserToAll(userId: number): void {
+    this.addToAllLoading.set(true);
+    this.addToAllError.set('');
+    this.addToAllResult.set(null);
+    this.gitlab.addUserToAllGroupsAndProjects(userId, this.bulkAccessLevel).subscribe({
+      next: (result) => {
+        this.addToAllLoading.set(false);
+        this.addToAllResult.set(result);
+      },
+      error: (err) => {
+        this.addToAllError.set(err?.error?.detail ?? 'Failed to add user to all groups and projects');
+        this.addToAllLoading.set(false);
+      },
+    });
+  }
+
+  private resetAddToAllForm(): void {
+    this.bulkAccessLevel = 30;
+    this.addToAllError.set('');
+    this.addToAllResult.set(null);
   }
 
   // ── Group expansion ─────────────────────────────────────────────────────

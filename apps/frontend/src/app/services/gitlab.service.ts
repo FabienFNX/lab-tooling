@@ -39,6 +39,18 @@ export interface GitlabMember {
   expires_at: string | null;
 }
 
+export interface EntityResult {
+  total: number;
+  added: number;
+  skipped: number;
+  failed: number;
+}
+
+export interface AddEverywhereResult {
+  groups: EntityResult;
+  projects: EntityResult;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -76,6 +88,12 @@ export class GitlabService {
   addProjectMember(projectId: number, userId: number, accessLevel: number): Observable<GitlabMember> {
     return this.http.post<GitlabMember>(`${this.baseUrl}/api/gitlab/projects/${projectId}/members`, {
       user_id: userId,
+      access_level: accessLevel,
+    });
+  }
+
+  addUserToAllGroupsAndProjects(userId: number, accessLevel: number): Observable<AddEverywhereResult> {
+    return this.http.post<AddEverywhereResult>(`${this.baseUrl}/api/gitlab/users/${userId}/add-everywhere`, {
       access_level: accessLevel,
     });
   }

@@ -3,7 +3,7 @@ from typing import Any
 
 import httpx
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/gitlab", tags=["gitlab"])
 
@@ -121,3 +121,65 @@ async def add_project_member(project_id: int, payload: AddMemberPayload) -> Any:
         if resp.status_code not in (200, 201):
             raise HTTPException(status_code=resp.status_code, detail=resp.text)
         return resp.json()
+
+
+# ── Bulk membership ──────────────────────────────────────────────────────────
+
+
+class AddEverywherePayload(BaseModel):
+    access_level: int
+
+
+class EntityResult(BaseModel):
+    total: int = 0
+    added: int = 0
+    skipped: int = Field(default=0, description="Already a member (HTTP 409)")
+    failed: int = 0
+
+
+class AddEverywhereResult(BaseModel):
+    groups: EntityResult
+    projects: EntityResult
+
+
+@router.post("/users/{user_id}/add-everywhere", response_model=AddEverywhereResult)
+async def add_user_everywhere(user_id: int, payload: AddEverywherePayload) -> AddEverywhereResult:
+    """Add a user to every group and every project with the given access level."""
+    base_url, headers, ssl_verify = _require_config()
+
+    groups = await _fetch_all("/groups", {"all_available": "true"})
+    projects = await _fetch_all("/projects", {"simple": "true"})
+
+    groups_result = EntityResult(total=len(groups))
+    projects_result = EntityResult(total=len(projects))
+
+    async with httpx.AsyncClient(verify=ssl_verify) as client:
+        for group in groups:
+            resp = await client.post(
+                f"{base_url}/api/v4/groups/{group['id']}/members",
+                headers=headers,
+                json={"user_id": user_id, "access_level": payload.access_level},
+                timeout=30.0,
+            )
+            if resp.status_code in (200, 201):
+                groups_result.added += 1
+            elif resp.status_code == 409:
+                groups_result.skipped += 1
+            else:
+                groups_result.failed += 1
+
+        for project in projects:
+            resp = await client.post(
+                f"{base_url}/api/v4/projects/{project['id']}/members",
+                headers=headers,
+                json={"user_id": user_id, "access_level": payload.access_level},
+                timeout=30.0,
+            )
+            if resp.status_code in (200, 201):
+                projects_result.added += 1
+            elif resp.status_code == 409:
+                projects_result.skipped += 1
+            else:
+                projects_result.failed += 1
+
+    return AddEverywhereResult(groups=groups_result, projects=projects_result)

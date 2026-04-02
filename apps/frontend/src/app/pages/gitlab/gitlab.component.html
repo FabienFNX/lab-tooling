@@ -46,34 +46,60 @@
       } @else if (users().length === 0) {
         <p>No users found.</p>
       } @else {
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Username</th>
-              <th>Name</th>
-              <th>State</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (user of users(); track user.id) {
-              <tr>
-                <td>{{ user.id }}</td>
-                <td>
-                  <a [href]="user.web_url" target="_blank" rel="noopener">
-                    &#64;{{ user.username }}
-                  </a>
-                </td>
-                <td>{{ user.name }}</td>
-                <td>
-                  <span class="state-badge" [class.active]="user.state === 'active'">
-                    {{ user.state }}
-                  </span>
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
+        <ul class="entity-list">
+          @for (user of users(); track user.id) {
+            <li class="entity-item" [class.expanded]="expandedUserId() === user.id">
+              <div class="entity-header" (click)="toggleUser(user.id)" role="button" [attr.aria-expanded]="expandedUserId() === user.id" tabindex="0" (keydown.enter)="toggleUser(user.id)" (keydown.space)="toggleUser(user.id)">
+                <span class="entity-name">{{ user.name }}</span>
+                <span class="entity-path">&#64;{{ user.username }}</span>
+                <span class="state-badge" [class.active]="user.state === 'active'">{{ user.state }}</span>
+                <span class="expand-icon">{{ expandedUserId() === user.id ? '▲' : '▼' }}</span>
+              </div>
+
+              @if (expandedUserId() === user.id) {
+                <div class="entity-detail">
+                  <form class="add-member-form" (ngSubmit)="addUserToAll(user.id)">
+                    <h4>Add to all groups &amp; projects</h4>
+                    @if (addToAllError()) {
+                      <p class="error-msg">{{ addToAllError() }}</p>
+                    }
+                    @if (addToAllResult()) {
+                      <div class="bulk-result">
+                        <p class="success-msg">Operation completed</p>
+                        <div class="result-grid">
+                          <div class="result-cell">
+                            <span class="result-label">Groups</span>
+                            <span>Added: <strong>{{ addToAllResult()!.groups.added }}</strong></span>
+                            <span>Skipped: <strong>{{ addToAllResult()!.groups.skipped }}</strong></span>
+                            <span>Failed: <strong>{{ addToAllResult()!.groups.failed }}</strong></span>
+                            <span>Total: <strong>{{ addToAllResult()!.groups.total }}</strong></span>
+                          </div>
+                          <div class="result-cell">
+                            <span class="result-label">Projects</span>
+                            <span>Added: <strong>{{ addToAllResult()!.projects.added }}</strong></span>
+                            <span>Skipped: <strong>{{ addToAllResult()!.projects.skipped }}</strong></span>
+                            <span>Failed: <strong>{{ addToAllResult()!.projects.failed }}</strong></span>
+                            <span>Total: <strong>{{ addToAllResult()!.projects.total }}</strong></span>
+                          </div>
+                        </div>
+                      </div>
+                    }
+                    <div class="form-row">
+                      <select [(ngModel)]="bulkAccessLevel" name="bulkAccessLevel">
+                        @for (level of accessLevels; track level.value) {
+                          <option [ngValue]="level.value">{{ level.label }}</option>
+                        }
+                      </select>
+                      <button type="submit" [disabled]="addToAllLoading()">
+                        {{ addToAllLoading() ? 'Adding…' : 'Add to all groups & projects' }}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              }
+            </li>
+          }
+        </ul>
       }
     </section>
   }
