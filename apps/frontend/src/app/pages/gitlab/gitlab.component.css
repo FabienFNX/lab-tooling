@@ -1,0 +1,242 @@
+.gitlab-page {
+  padding: 0 0 32px;
+}
+
+/* ── Tabs ──────────────────────────────────────────────────────────────── */
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 24px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.tabs button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  background: transparent;
+  color: #555;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  border-radius: 0;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.tabs button:hover {
+  color: #007bff;
+  background: transparent;
+}
+
+.tabs button.active {
+  color: #007bff;
+  border-bottom-color: #007bff;
+  font-weight: 600;
+}
+
+.badge {
+  background: #007bff;
+  color: #fff;
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 0.75rem;
+}
+
+/* ── Tab panels ─────────────────────────────────────────────────────────── */
+
+.tab-panel {
+  background: #fff;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Users table ─────────────────────────────────────────────────────────── */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+th {
+  text-align: left;
+  padding: 8px 12px;
+  background: #f5f7fa;
+  border-bottom: 2px solid #e0e0e0;
+  color: #555;
+  font-weight: 600;
+}
+
+td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #f0f0f0;
+  color: #333;
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.state-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.78rem;
+  background: #eee;
+  color: #666;
+}
+
+.state-badge.active {
+  background: #d4edda;
+  color: #155724;
+}
+
+/* ── Entity list (groups / projects) ─────────────────────────────────────── */
+
+.entity-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.entity-item {
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.entity-item.expanded {
+  border-color: #007bff;
+}
+
+.entity-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+  background: #f9f9f9;
+  transition: background 0.15s;
+}
+
+.entity-header:hover {
+  background: #eef4ff;
+}
+
+.entity-name {
+  font-weight: 600;
+  color: #333;
+  flex: 0 0 auto;
+}
+
+.entity-path {
+  color: #888;
+  font-size: 0.85rem;
+  flex: 1;
+}
+
+.expand-icon {
+  color: #aaa;
+  font-size: 0.75rem;
+}
+
+/* ── Expanded detail ─────────────────────────────────────────────────────── */
+
+.entity-detail {
+  padding: 16px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.members-table {
+  margin-bottom: 16px;
+}
+
+/* ── Add-member form ─────────────────────────────────────────────────────── */
+
+.add-member-form {
+  background: #f5f7fa;
+  border-radius: 6px;
+  padding: 16px;
+  margin-top: 8px;
+}
+
+.add-member-form h4 {
+  margin-bottom: 12px;
+  font-size: 0.95rem;
+  color: #444;
+}
+
+.form-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+select {
+  flex: 1;
+  min-width: 160px;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background: #fff;
+}
+
+button {
+  padding: 8px 20px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+button:hover:not(:disabled) {
+  background: #0056b3;
+}
+
+button:disabled {
+  background: #aaa;
+  cursor: not-allowed;
+}
+
+/* ── Status messages ─────────────────────────────────────────────────────── */
+
+.loading {
+  color: #555;
+  font-style: italic;
+}
+
+.error-msg {
+  color: #721c24;
+  background: #f8d7da;
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+}
+
+.success-msg {
+  color: #155724;
+  background: #d4edda;
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+}

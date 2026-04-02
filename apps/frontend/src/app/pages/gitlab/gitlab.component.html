@@ -1,0 +1,251 @@
+<div class="gitlab-page">
+  <!-- Tabs -->
+  <div class="tabs" role="tablist">
+    <button
+      role="tab"
+      [class.active]="activeTab() === 'users'"
+      [attr.aria-selected]="activeTab() === 'users'"
+      (click)="setTab('users')"
+    >
+      Users
+      @if (users().length) {
+        <span class="badge">{{ users().length }}</span>
+      }
+    </button>
+    <button
+      role="tab"
+      [class.active]="activeTab() === 'groups'"
+      [attr.aria-selected]="activeTab() === 'groups'"
+      (click)="setTab('groups')"
+    >
+      Groups
+      @if (groups().length) {
+        <span class="badge">{{ groups().length }}</span>
+      }
+    </button>
+    <button
+      role="tab"
+      [class.active]="activeTab() === 'projects'"
+      [attr.aria-selected]="activeTab() === 'projects'"
+      (click)="setTab('projects')"
+    >
+      Projects
+      @if (projects().length) {
+        <span class="badge">{{ projects().length }}</span>
+      }
+    </button>
+  </div>
+
+  <!-- Global error (e.g. unconfigured GitLab URL/token) -->
+  @if (error()) {
+    <p class="error-msg">{{ error() }}</p>
+  }
+
+  <!-- ── Users tab ──────────────────────────────────────────────────── -->
+  @if (activeTab() === 'users') {
+    <section class="tab-panel" aria-label="Users">
+      @if (usersLoading()) {
+        <p class="loading">Loading users…</p>
+      } @else if (users().length === 0) {
+        <p>No users found.</p>
+      } @else {
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Username</th>
+              <th>Name</th>
+              <th>State</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (user of users(); track user.id) {
+              <tr>
+                <td>{{ user.id }}</td>
+                <td>
+                  <a [href]="user.web_url" target="_blank" rel="noopener">
+                    &#64;{{ user.username }}
+                  </a>
+                </td>
+                <td>{{ user.name }}</td>
+                <td>
+                  <span class="state-badge" [class.active]="user.state === 'active'">
+                    {{ user.state }}
+                  </span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </section>
+  }
+
+  <!-- ── Groups tab ────────────────────────────────────────────────── -->
+  @if (activeTab() === 'groups') {
+    <section class="tab-panel" aria-label="Groups">
+      @if (groupsLoading()) {
+        <p class="loading">Loading groups…</p>
+      } @else if (groups().length === 0) {
+        <p>No groups found.</p>
+      } @else {
+        <ul class="entity-list">
+          @for (group of groups(); track group.id) {
+            <li class="entity-item" [class.expanded]="expandedGroupId() === group.id">
+              <div class="entity-header" (click)="toggleGroup(group.id)" role="button" [attr.aria-expanded]="expandedGroupId() === group.id" tabindex="0" (keydown.enter)="toggleGroup(group.id)" (keydown.space)="toggleGroup(group.id)">
+                <span class="entity-name">{{ group.name }}</span>
+                <span class="entity-path">{{ group.full_path }}</span>
+                <span class="expand-icon">{{ expandedGroupId() === group.id ? '▲' : '▼' }}</span>
+              </div>
+
+              @if (expandedGroupId() === group.id) {
+                <div class="entity-detail">
+                  <!-- Members table -->
+                  @if (membersLoading()) {
+                    <p class="loading">Loading members…</p>
+                  } @else if (groupMembers()[group.id]?.length === 0) {
+                    <p>No members.</p>
+                  } @else if (groupMembers()[group.id]) {
+                    <table class="members-table">
+                      <thead>
+                        <tr>
+                          <th>Username</th>
+                          <th>Name</th>
+                          <th>Access level</th>
+                          <th>Expires</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (member of groupMembers()[group.id]; track member.id) {
+                          <tr>
+                            <td>&#64;{{ member.username }}</td>
+                            <td>{{ member.name }}</td>
+                            <td>{{ accessLevelLabel(member.access_level) }}</td>
+                            <td>{{ member.expires_at ?? '—' }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  }
+
+                  <!-- Add member form -->
+                  <form class="add-member-form" (ngSubmit)="addGroupMember(group.id)">
+                    <h4>Add member</h4>
+                    @if (addMemberError()) {
+                      <p class="error-msg">{{ addMemberError() }}</p>
+                    }
+                    @if (addMemberSuccess()) {
+                      <p class="success-msg">{{ addMemberSuccess() }}</p>
+                    }
+                    <div class="form-row">
+                      <select [(ngModel)]="formUserId" name="userId" required>
+                        <option [ngValue]="null" disabled>Select a user</option>
+                        @for (user of users(); track user.id) {
+                          <option [ngValue]="user.id">
+                            {{ user.name }} (&#64;{{ user.username }})
+                          </option>
+                        }
+                      </select>
+                      <select [(ngModel)]="formAccessLevel" name="accessLevel">
+                        @for (level of accessLevels; track level.value) {
+                          <option [ngValue]="level.value">{{ level.label }}</option>
+                        }
+                      </select>
+                      <button type="submit" [disabled]="addMemberLoading() || !formUserId">
+                        {{ addMemberLoading() ? 'Adding…' : 'Add' }}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              }
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  }
+
+  <!-- ── Projects tab ──────────────────────────────────────────────── -->
+  @if (activeTab() === 'projects') {
+    <section class="tab-panel" aria-label="Projects">
+      @if (projectsLoading()) {
+        <p class="loading">Loading projects…</p>
+      } @else if (projects().length === 0) {
+        <p>No projects found.</p>
+      } @else {
+        <ul class="entity-list">
+          @for (project of projects(); track project.id) {
+            <li class="entity-item" [class.expanded]="expandedProjectId() === project.id">
+              <div class="entity-header" (click)="toggleProject(project.id)" role="button" [attr.aria-expanded]="expandedProjectId() === project.id" tabindex="0" (keydown.enter)="toggleProject(project.id)" (keydown.space)="toggleProject(project.id)">
+                <span class="entity-name">{{ project.name }}</span>
+                <span class="entity-path">{{ project.path_with_namespace }}</span>
+                <span class="expand-icon">{{ expandedProjectId() === project.id ? '▲' : '▼' }}</span>
+              </div>
+
+              @if (expandedProjectId() === project.id) {
+                <div class="entity-detail">
+                  <!-- Members table -->
+                  @if (membersLoading()) {
+                    <p class="loading">Loading members…</p>
+                  } @else if (projectMembers()[project.id]?.length === 0) {
+                    <p>No members.</p>
+                  } @else if (projectMembers()[project.id]) {
+                    <table class="members-table">
+                      <thead>
+                        <tr>
+                          <th>Username</th>
+                          <th>Name</th>
+                          <th>Access level</th>
+                          <th>Expires</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (member of projectMembers()[project.id]; track member.id) {
+                          <tr>
+                            <td>&#64;{{ member.username }}</td>
+                            <td>{{ member.name }}</td>
+                            <td>{{ accessLevelLabel(member.access_level) }}</td>
+                            <td>{{ member.expires_at ?? '—' }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  }
+
+                  <!-- Add member form -->
+                  <form class="add-member-form" (ngSubmit)="addProjectMember(project.id)">
+                    <h4>Add member</h4>
+                    @if (addMemberError()) {
+                      <p class="error-msg">{{ addMemberError() }}</p>
+                    }
+                    @if (addMemberSuccess()) {
+                      <p class="success-msg">{{ addMemberSuccess() }}</p>
+                    }
+                    <div class="form-row">
+                      <select [(ngModel)]="formUserId" name="userId" required>
+                        <option [ngValue]="null" disabled>Select a user</option>
+                        @for (user of users(); track user.id) {
+                          <option [ngValue]="user.id">
+                            {{ user.name }} (&#64;{{ user.username }})
+                          </option>
+                        }
+                      </select>
+                      <select [(ngModel)]="formAccessLevel" name="accessLevel">
+                        @for (level of accessLevels; track level.value) {
+                          <option [ngValue]="level.value">{{ level.label }}</option>
+                        }
+                      </select>
+                      <button type="submit" [disabled]="addMemberLoading() || !formUserId">
+                        {{ addMemberLoading() ? 'Adding…' : 'Add' }}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              }
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  }
+</div>
