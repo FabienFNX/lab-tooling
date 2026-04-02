@@ -36,16 +36,13 @@
     </button>
   </div>
 
-  <!-- Global error (e.g. unconfigured GitLab URL/token) -->
-  @if (error()) {
-    <p class="error-msg">{{ error() }}</p>
-  }
-
   <!-- ── Users tab ──────────────────────────────────────────────────── -->
   @if (activeTab() === 'users') {
     <section class="tab-panel" aria-label="Users">
       @if (usersLoading()) {
         <p class="loading">Loading users…</p>
+      } @else if (usersError()) {
+        <p class="error-msg">{{ usersError() }}</p>
       } @else if (users().length === 0) {
         <p>No users found.</p>
       } @else {
@@ -86,6 +83,8 @@
     <section class="tab-panel" aria-label="Groups">
       @if (groupsLoading()) {
         <p class="loading">Loading groups…</p>
+      } @else if (groupsError()) {
+        <p class="error-msg">{{ groupsError() }}</p>
       } @else if (groups().length === 0) {
         <p>No groups found.</p>
       } @else {
@@ -170,6 +169,8 @@
     <section class="tab-panel" aria-label="Projects">
       @if (projectsLoading()) {
         <p class="loading">Loading projects…</p>
+      } @else if (projectsError()) {
+        <p class="error-msg">{{ projectsError() }}</p>
       } @else if (projects().length === 0) {
         <p>No projects found.</p>
       } @else {
