@@ -5,6 +5,7 @@ from typing import List
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.gitlab import router as gitlab_router
 from app.api.routes import router
 from app.db.init_db import init_db
 
@@ -35,6 +36,7 @@ app.add_middleware(
 )
 
 app.include_router(router)
+app.include_router(gitlab_router)
 
 
 @app.get("/health")
