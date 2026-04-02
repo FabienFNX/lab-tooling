@@ -8,9 +8,10 @@ from pydantic import BaseModel
 router = APIRouter(prefix="/api/gitlab", tags=["gitlab"])
 
 
-def _require_config() -> tuple[str, dict[str, str]]:
+def _require_config() -> tuple[str, dict[str, str], bool]:
     gitlab_url = os.getenv("GITLAB_URL", "")
     gitlab_token = os.getenv("GITLAB_TOKEN", "")
+    ssl_verify = os.getenv("GITLAB_SSL_VERIFY", "true").lower() not in ("false", "0", "no")
     if not gitlab_url:
         raise HTTPException(
             status_code=503,
@@ -21,16 +22,16 @@ def _require_config() -> tuple[str, dict[str, str]]:
             status_code=503,
             detail="GITLAB_TOKEN environment variable is not configured",
         )
-    return gitlab_url.rstrip("/"), {"PRIVATE-TOKEN": gitlab_token}
+    return gitlab_url.rstrip("/"), {"PRIVATE-TOKEN": gitlab_token}, ssl_verify
 
 
 async def _fetch_all(path: str, extra_params: dict[str, Any] | None = None) -> list[Any]:
     """Fetch all paginated results from the GitLab API."""
-    base_url, headers = _require_config()
+    base_url, headers, ssl_verify = _require_config()
     params: dict[str, Any] = {**(extra_params or {}), "per_page": 100, "page": 1}
     results: list[Any] = []
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(verify=ssl_verify) as client:
         while True:
             resp = await client.get(
                 f"{base_url}/api/v4{path}",
@@ -94,8 +95,8 @@ class AddMemberPayload(BaseModel):
 
 @router.post("/groups/{group_id}/members", status_code=201)
 async def add_group_member(group_id: int, payload: AddMemberPayload) -> Any:
-    base_url, headers = _require_config()
-    async with httpx.AsyncClient() as client:
+    base_url, headers, ssl_verify = _require_config()
+    async with httpx.AsyncClient(verify=ssl_verify) as client:
         resp = await client.post(
             f"{base_url}/api/v4/groups/{group_id}/members",
             headers=headers,
@@ -109,8 +110,8 @@ async def add_group_member(group_id: int, payload: AddMemberPayload) -> Any:
 
 @router.post("/projects/{project_id}/members", status_code=201)
 async def add_project_member(project_id: int, payload: AddMemberPayload) -> Any:
-    base_url, headers = _require_config()
-    async with httpx.AsyncClient() as client:
+    base_url, headers, ssl_verify = _require_config()
+    async with httpx.AsyncClient(verify=ssl_verify) as client:
         resp = await client.post(
             f"{base_url}/api/v4/projects/{project_id}/members",
             headers=headers,
