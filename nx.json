@@ -67,5 +67,6 @@
       "style": "css",
       "unitTestRunner": "jest"
     }
-  }
+  },
+  "analytics": false
 }
