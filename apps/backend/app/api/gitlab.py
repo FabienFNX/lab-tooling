@@ -1,9 +1,14 @@
+import json
 import os
 from typing import Any
 
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
+
+from app.db.database import get_db
+from app.db.models import BulkAddSelection
 
 router = APIRouter(prefix="/api/gitlab", tags=["gitlab"])
 
@@ -57,6 +62,15 @@ async def _fetch_all(path: str, extra_params: dict[str, Any] | None = None) -> l
 @router.get("/users")
 async def list_users() -> list[Any]:
     return await _fetch_all("/users", {"active": "true"})
+
+
+@router.get("/users/by-username/{username}")
+async def get_user_by_username(username: str) -> Any:
+    """Return the GitLab profile for a single user by username."""
+    users = await _fetch_all("/users", {"username": username})
+    if not users:
+        raise HTTPException(status_code=404, detail=f"User '{username}' not found")
+    return users[0]
 
 
 # ── Groups ───────────────────────────────────────────────────────────────────
@@ -128,6 +142,8 @@ async def add_project_member(project_id: int, payload: AddMemberPayload) -> Any:
 
 class AddEverywherePayload(BaseModel):
     access_level: int
+    group_ids: list[int] | None = None    # None = use all groups
+    project_ids: list[int] | None = None  # None = use all projects
 
 
 class EntityResult(BaseModel):
@@ -142,13 +158,67 @@ class AddEverywhereResult(BaseModel):
     projects: EntityResult
 
 
+# ── Bulk selection (saved group/project filter) ───────────────────────────────
+
+
+class BulkSelectionPayload(BaseModel):
+    group_ids: list[int]
+    project_ids: list[int]
+
+
+class BulkSelectionResponse(BaseModel):
+    saved: bool
+    group_ids: list[int]
+    project_ids: list[int]
+
+
+@router.get("/bulk-selection", response_model=BulkSelectionResponse)
+def get_bulk_selection(db: Session = Depends(get_db)) -> BulkSelectionResponse:
+    row = db.query(BulkAddSelection).first()
+    if row is None:
+        return BulkSelectionResponse(saved=False, group_ids=[], project_ids=[])
+    return BulkSelectionResponse(
+        saved=True,
+        group_ids=json.loads(row.group_ids),
+        project_ids=json.loads(row.project_ids),
+    )
+
+
+@router.put("/bulk-selection", response_model=BulkSelectionResponse)
+def save_bulk_selection(
+    payload: BulkSelectionPayload, db: Session = Depends(get_db)
+) -> BulkSelectionResponse:
+    row = db.query(BulkAddSelection).first()
+    if row is None:
+        row = BulkAddSelection()
+        db.add(row)
+    row.group_ids = json.dumps(payload.group_ids)
+    row.project_ids = json.dumps(payload.project_ids)
+    db.commit()
+    return BulkSelectionResponse(
+        saved=True, group_ids=payload.group_ids, project_ids=payload.project_ids
+    )
+
+
 @router.post("/users/{user_id}/add-everywhere", response_model=AddEverywhereResult)
 async def add_user_everywhere(user_id: int, payload: AddEverywherePayload) -> AddEverywhereResult:
-    """Add a user to every group and every project with the given access level."""
+    """Add a user to every (or selected) group and project with the given access level."""
     base_url, headers, ssl_verify = _require_config()
 
-    groups = await _fetch_all("/groups", {"all_available": "true"})
-    projects = await _fetch_all("/projects", {"simple": "true"})
+    all_groups = await _fetch_all("/groups", {"all_available": "true"})
+    all_projects = await _fetch_all("/projects", {"simple": "true"})
+
+    if payload.group_ids is not None:
+        wanted = set(payload.group_ids)
+        groups = [g for g in all_groups if g["id"] in wanted]
+    else:
+        groups = all_groups
+
+    if payload.project_ids is not None:
+        wanted = set(payload.project_ids)
+        projects = [p for p in all_projects if p["id"] in wanted]
+    else:
+        projects = all_projects
 
     groups_result = EntityResult(total=len(groups))
     projects_result = EntityResult(total=len(projects))

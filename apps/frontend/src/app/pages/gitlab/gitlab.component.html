@@ -51,50 +51,104 @@
             <li class="entity-item" [class.expanded]="expandedUserId() === user.id">
               <div class="entity-header" (click)="toggleUser(user.id)" role="button" [attr.aria-expanded]="expandedUserId() === user.id" tabindex="0" (keydown.enter)="toggleUser(user.id)" (keydown.space)="toggleUser(user.id)">
                 <span class="entity-name">{{ user.name }}</span>
-                <span class="entity-path">&#64;{{ user.username }}</span>
+                <button class="username-link entity-path" type="button" (click)="viewProfile(user.username, $event)">&#64;{{ user.username }}</button>
                 <span class="state-badge" [class.active]="user.state === 'active'">{{ user.state }}</span>
                 <span class="expand-icon">{{ expandedUserId() === user.id ? '▲' : '▼' }}</span>
               </div>
 
               @if (expandedUserId() === user.id) {
                 <div class="entity-detail">
-                  <form class="add-member-form" (ngSubmit)="addUserToAll(user.id)">
-                    <h4>Add to all groups &amp; projects</h4>
-                    @if (addToAllError()) {
-                      <p class="error-msg">{{ addToAllError() }}</p>
-                    }
-                    @if (addToAllResult()) {
-                      <div class="bulk-result">
-                        <p class="success-msg">Operation completed</p>
-                        <div class="result-grid">
-                          <div class="result-cell">
-                            <span class="result-label">Groups</span>
-                            <span>Added: <strong>{{ addToAllResult()!.groups.added }}</strong></span>
-                            <span>Skipped: <strong>{{ addToAllResult()!.groups.skipped }}</strong></span>
-                            <span>Failed: <strong>{{ addToAllResult()!.groups.failed }}</strong></span>
-                            <span>Total: <strong>{{ addToAllResult()!.groups.total }}</strong></span>
-                          </div>
-                          <div class="result-cell">
-                            <span class="result-label">Projects</span>
-                            <span>Added: <strong>{{ addToAllResult()!.projects.added }}</strong></span>
-                            <span>Skipped: <strong>{{ addToAllResult()!.projects.skipped }}</strong></span>
-                            <span>Failed: <strong>{{ addToAllResult()!.projects.failed }}</strong></span>
-                            <span>Total: <strong>{{ addToAllResult()!.projects.total }}</strong></span>
+                  @if (selectionLoading()) {
+                    <p class="loading">Loading selection…</p>
+                  } @else {
+                    <!-- Groups & Projects checklists -->
+                    <div class="selection-grid">
+                      <div class="selection-col">
+                        <div class="selection-col-header">
+                          <span>Groups ({{ checkedGroupCount() }}&thinsp;/&thinsp;{{ groups().length }})</span>
+                          <div class="selection-col-actions">
+                            <button type="button" class="link-btn" (click)="selectAllGroups()">All</button>
+                            <button type="button" class="link-btn" (click)="deselectAllGroups()">None</button>
                           </div>
                         </div>
+                        <ul class="check-list">
+                          @for (group of groups(); track group.id) {
+                            <li>
+                              <label>
+                                <input type="checkbox" [checked]="isGroupChecked(group.id)" (change)="toggleGroupCheck(group.id)" />
+                                {{ group.name }}
+                              </label>
+                            </li>
+                          }
+                        </ul>
                       </div>
-                    }
-                    <div class="form-row">
-                      <select [(ngModel)]="bulkAccessLevel" name="bulkAccessLevel">
-                        @for (level of accessLevels; track level.value) {
-                          <option [ngValue]="level.value">{{ level.label }}</option>
-                        }
-                      </select>
-                      <button type="submit" [disabled]="addToAllLoading()">
-                        {{ addToAllLoading() ? 'Adding…' : 'Add to all groups & projects' }}
-                      </button>
+
+                      <div class="selection-col">
+                        <div class="selection-col-header">
+                          <span>Projects ({{ checkedProjectCount() }}&thinsp;/&thinsp;{{ projects().length }})</span>
+                          <div class="selection-col-actions">
+                            <button type="button" class="link-btn" (click)="selectAllProjects()">All</button>
+                            <button type="button" class="link-btn" (click)="deselectAllProjects()">None</button>
+                          </div>
+                        </div>
+                        <ul class="check-list">
+                          @for (project of projects(); track project.id) {
+                            <li>
+                              <label>
+                                <input type="checkbox" [checked]="isProjectChecked(project.id)" (change)="toggleProjectCheck(project.id)" />
+                                {{ project.path_with_namespace }}
+                              </label>
+                            </li>
+                          }
+                        </ul>
+                      </div>
                     </div>
-                  </form>
+
+                    <!-- Bulk action form -->
+                    <form class="add-member-form bulk-action-form" (ngSubmit)="addUserToAll(user.id)">
+                      @if (addToAllError()) {
+                        <p class="error-msg">{{ addToAllError() }}</p>
+                      }
+                      @if (addToAllResult()) {
+                        <div class="bulk-result">
+                          <p class="success-msg">Operation completed</p>
+                          <div class="result-grid">
+                            <div class="result-cell">
+                              <span class="result-label">Groups</span>
+                              <span>Added: <strong>{{ addToAllResult()!.groups.added }}</strong></span>
+                              <span>Skipped: <strong>{{ addToAllResult()!.groups.skipped }}</strong></span>
+                              <span>Failed: <strong>{{ addToAllResult()!.groups.failed }}</strong></span>
+                              <span>Total: <strong>{{ addToAllResult()!.groups.total }}</strong></span>
+                            </div>
+                            <div class="result-cell">
+                              <span class="result-label">Projects</span>
+                              <span>Added: <strong>{{ addToAllResult()!.projects.added }}</strong></span>
+                              <span>Skipped: <strong>{{ addToAllResult()!.projects.skipped }}</strong></span>
+                              <span>Failed: <strong>{{ addToAllResult()!.projects.failed }}</strong></span>
+                              <span>Total: <strong>{{ addToAllResult()!.projects.total }}</strong></span>
+                            </div>
+                          </div>
+                        </div>
+                      }
+                      <div class="form-row">
+                        <select [(ngModel)]="bulkAccessLevel" name="bulkAccessLevel">
+                          @for (level of accessLevels; track level.value) {
+                            <option [ngValue]="level.value">{{ level.label }}</option>
+                          }
+                        </select>
+                        <button
+                          type="submit"
+                          [disabled]="addToAllLoading() || (checkedGroupCount() === 0 && checkedProjectCount() === 0)"
+                        >
+                          @if (addToAllLoading()) {
+                            Adding…
+                          } @else {
+                            Add to {{ checkedGroupCount() }} group(s) &amp; {{ checkedProjectCount() }} project(s)
+                          }
+                        </button>
+                      </div>
+                    </form>
+                  }
                 </div>
               }
             </li>
@@ -143,7 +197,7 @@
                       <tbody>
                         @for (member of groupMembers()[group.id]; track member.id) {
                           <tr>
-                            <td>&#64;{{ member.username }}</td>
+                            <td><button class="username-link" type="button" (click)="viewProfile(member.username)">&#64;{{ member.username }}</button></td>
                             <td>{{ member.name }}</td>
                             <td>{{ accessLevelLabel(member.access_level) }}</td>
                             <td>{{ member.expires_at ?? '—' }}</td>
@@ -229,7 +283,7 @@
                       <tbody>
                         @for (member of projectMembers()[project.id]; track member.id) {
                           <tr>
-                            <td>&#64;{{ member.username }}</td>
+                            <td><button class="username-link" type="button" (click)="viewProfile(member.username)">&#64;{{ member.username }}</button></td>
                             <td>{{ member.name }}</td>
                             <td>{{ accessLevelLabel(member.access_level) }}</td>
                             <td>{{ member.expires_at ?? '—' }}</td>
@@ -274,5 +328,40 @@
         </ul>
       }
     </section>
+  }
+
+  <!-- ── User profile modal ────────────────────────────────────────── -->
+  @if (profileUsername()) {
+    <div class="profile-overlay" (click)="closeProfile()" role="dialog" aria-modal="true" [attr.aria-label]="'Profile of @' + profileUsername()">
+      <div class="profile-modal" (click)="$event.stopPropagation()">
+        <button class="profile-close" type="button" (click)="closeProfile()" aria-label="Close">✕</button>
+        @if (profileLoading()) {
+          <p class="loading">Loading profile…</p>
+        } @else if (profileError()) {
+          <p class="error-msg">{{ profileError() }}</p>
+        } @else if (profileUser()) {
+          <div class="profile-content">
+            @if (profileUser()!.avatar_url) {
+              <img class="profile-avatar" [src]="profileUser()!.avatar_url" [alt]="profileUser()!.name" />
+            }
+            <div class="profile-info">
+              <h3 class="profile-name">{{ profileUser()!.name }}</h3>
+              <p class="profile-username">&#64;{{ profileUser()!.username }}</p>
+              <span class="state-badge" [class.active]="profileUser()!.state === 'active'">{{ profileUser()!.state }}</span>
+              @if (profileUser()!.job_title) {
+                <p class="profile-detail">{{ profileUser()!.job_title }}</p>
+              }
+              @if (profileUser()!.organization) {
+                <p class="profile-detail">{{ profileUser()!.organization }}</p>
+              }
+              @if (profileUser()!.location) {
+                <p class="profile-detail">&#128205; {{ profileUser()!.location }}</p>
+              }
+              <a class="profile-link" [href]="profileUser()!.web_url" target="_blank" rel="noopener noreferrer">View on GitLab →</a>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
   }
 </div>

@@ -51,6 +51,27 @@ export interface AddEverywhereResult {
   projects: EntityResult;
 }
 
+export interface BulkSelection {
+  saved: boolean;
+  group_ids: number[];
+  project_ids: number[];
+}
+
+export interface GitlabUserProfile {
+  id: number;
+  username: string;
+  name: string;
+  state: string;
+  avatar_url: string;
+  web_url: string;
+  bio: string | null;
+  location: string | null;
+  public_email: string | null;
+  job_title: string | null;
+  organization: string | null;
+  created_at: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -92,9 +113,29 @@ export class GitlabService {
     });
   }
 
-  addUserToAllGroupsAndProjects(userId: number, accessLevel: number): Observable<AddEverywhereResult> {
-    return this.http.post<AddEverywhereResult>(`${this.baseUrl}/api/gitlab/users/${userId}/add-everywhere`, {
-      access_level: accessLevel,
-    });
+  addUserToAllGroupsAndProjects(
+    userId: number,
+    accessLevel: number,
+    groupIds: number[],
+    projectIds: number[],
+  ): Observable<AddEverywhereResult> {
+    return this.http.post<AddEverywhereResult>(
+      `${this.baseUrl}/api/gitlab/users/${userId}/add-everywhere`,
+      { access_level: accessLevel, group_ids: groupIds, project_ids: projectIds },
+    );
+  }
+
+  getBulkSelection(): Observable<BulkSelection> {
+    return this.http.get<BulkSelection>(`${this.baseUrl}/api/gitlab/bulk-selection`);
+  }
+
+  saveBulkSelection(selection: { group_ids: number[]; project_ids: number[] }): Observable<BulkSelection> {
+    return this.http.put<BulkSelection>(`${this.baseUrl}/api/gitlab/bulk-selection`, selection);
+  }
+
+  getUserProfile(username: string): Observable<GitlabUserProfile> {
+    return this.http.get<GitlabUserProfile>(
+      `${this.baseUrl}/api/gitlab/users/by-username/${encodeURIComponent(username)}`,
+    );
   }
 }

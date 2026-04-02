@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   GitlabService,
@@ -6,6 +6,7 @@ import {
   GitlabGroup,
   GitlabProject,
   GitlabMember,
+  GitlabUserProfile,
   AddEverywhereResult,
 } from '../../services/gitlab.service';
 
@@ -54,6 +55,20 @@ export class GitlabComponent implements OnInit {
   addToAllLoading = signal(false);
   addToAllError = signal('');
   addToAllResult = signal<AddEverywhereResult | null>(null);
+
+  // Bulk selection: which groups/projects are checked for add-everywhere
+  checkedGroupIds = signal<Set<number>>(new Set());
+  checkedProjectIds = signal<Set<number>>(new Set());
+  selectionLoaded = signal(false);
+  selectionLoading = signal(false);
+  checkedGroupCount = computed(() => this.checkedGroupIds().size);
+  checkedProjectCount = computed(() => this.checkedProjectIds().size);
+
+  // User profile modal
+  profileUser = signal<GitlabUserProfile | null>(null);
+  profileLoading = signal(false);
+  profileError = signal('');
+  profileUsername = signal('');
 
   readonly accessLevels = [
     { value: 10, label: 'Guest' },
@@ -125,20 +140,88 @@ export class GitlabComponent implements OnInit {
     } else {
       this.expandedUserId.set(userId);
       this.resetAddToAllForm();
+      this.loadAndInitSelection();
     }
   }
 
+  loadAndInitSelection(): void {
+    if (this.selectionLoaded()) return;
+    this.selectionLoading.set(true);
+    this.gitlab.getBulkSelection().subscribe({
+      next: (sel) => {
+        if (!sel.saved) {
+          // No saved selection → all groups & projects selected by default
+          this.checkedGroupIds.set(new Set(this.groups().map((g) => g.id)));
+          this.checkedProjectIds.set(new Set(this.projects().map((p) => p.id)));
+        } else {
+          this.checkedGroupIds.set(new Set(sel.group_ids));
+          this.checkedProjectIds.set(new Set(sel.project_ids));
+        }
+        this.selectionLoaded.set(true);
+        this.selectionLoading.set(false);
+      },
+      error: () => {
+        // Fallback: select everything
+        this.checkedGroupIds.set(new Set(this.groups().map((g) => g.id)));
+        this.checkedProjectIds.set(new Set(this.projects().map((p) => p.id)));
+        this.selectionLoaded.set(true);
+        this.selectionLoading.set(false);
+      },
+    });
+  }
+
+  isGroupChecked(id: number): boolean {
+    return this.checkedGroupIds().has(id);
+  }
+
+  isProjectChecked(id: number): boolean {
+    return this.checkedProjectIds().has(id);
+  }
+
+  toggleGroupCheck(id: number): void {
+    const s = new Set(this.checkedGroupIds());
+    s.has(id) ? s.delete(id) : s.add(id);
+    this.checkedGroupIds.set(s);
+  }
+
+  toggleProjectCheck(id: number): void {
+    const s = new Set(this.checkedProjectIds());
+    s.has(id) ? s.delete(id) : s.add(id);
+    this.checkedProjectIds.set(s);
+  }
+
+  selectAllGroups(): void {
+    this.checkedGroupIds.set(new Set(this.groups().map((g) => g.id)));
+  }
+
+  deselectAllGroups(): void {
+    this.checkedGroupIds.set(new Set());
+  }
+
+  selectAllProjects(): void {
+    this.checkedProjectIds.set(new Set(this.projects().map((p) => p.id)));
+  }
+
+  deselectAllProjects(): void {
+    this.checkedProjectIds.set(new Set());
+  }
+
   addUserToAll(userId: number): void {
+    const groupIds = [...this.checkedGroupIds()];
+    const projectIds = [...this.checkedProjectIds()];
+    // Persist the selection silently
+    this.gitlab.saveBulkSelection({ group_ids: groupIds, project_ids: projectIds }).subscribe();
+    // Run the bulk add
     this.addToAllLoading.set(true);
     this.addToAllError.set('');
     this.addToAllResult.set(null);
-    this.gitlab.addUserToAllGroupsAndProjects(userId, this.bulkAccessLevel).subscribe({
+    this.gitlab.addUserToAllGroupsAndProjects(userId, this.bulkAccessLevel, groupIds, projectIds).subscribe({
       next: (result) => {
         this.addToAllLoading.set(false);
         this.addToAllResult.set(result);
       },
       error: (err) => {
-        this.addToAllError.set(err?.error?.detail ?? 'Failed to add user to all groups and projects');
+        this.addToAllError.set(err?.error?.detail ?? 'Failed to add user to groups and projects');
         this.addToAllLoading.set(false);
       },
     });
@@ -148,6 +231,32 @@ export class GitlabComponent implements OnInit {
     this.bulkAccessLevel = 30;
     this.addToAllError.set('');
     this.addToAllResult.set(null);
+  }
+
+  // ── User profile modal ──────────────────────────────────────────────────
+
+  viewProfile(username: string, event?: Event): void {
+    event?.stopPropagation();
+    this.profileUser.set(null);
+    this.profileError.set('');
+    this.profileUsername.set(username);
+    this.profileLoading.set(true);
+    this.gitlab.getUserProfile(username).subscribe({
+      next: (user) => {
+        this.profileUser.set(user);
+        this.profileLoading.set(false);
+      },
+      error: (err) => {
+        this.profileError.set(err?.error?.detail ?? 'Failed to load profile');
+        this.profileLoading.set(false);
+      },
+    });
+  }
+
+  closeProfile(): void {
+    this.profileUsername.set('');
+    this.profileUser.set(null);
+    this.profileError.set('');
   }
 
   // ── Group expansion ─────────────────────────────────────────────────────
