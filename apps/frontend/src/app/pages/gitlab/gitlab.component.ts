@@ -30,7 +30,9 @@ export class GitlabComponent implements OnInit {
   projectsLoading = signal(false);
   membersLoading = signal(false);
 
-  error = signal('');
+  usersError = signal('');
+  groupsError = signal('');
+  projectsError = signal('');
 
   expandedGroupId = signal<number | null>(null);
   expandedProjectId = signal<number | null>(null);
@@ -73,7 +75,7 @@ export class GitlabComponent implements OnInit {
         this.usersLoading.set(false);
       },
       error: (err) => {
-        this.error.set(err?.error?.detail ?? 'Failed to load users');
+        this.usersError.set(err?.error?.detail ?? 'Failed to load users');
         this.usersLoading.set(false);
       },
     });
@@ -87,7 +89,7 @@ export class GitlabComponent implements OnInit {
         this.groupsLoading.set(false);
       },
       error: (err) => {
-        this.error.set(err?.error?.detail ?? 'Failed to load groups');
+        this.groupsError.set(err?.error?.detail ?? 'Failed to load groups');
         this.groupsLoading.set(false);
       },
     });
@@ -101,7 +103,7 @@ export class GitlabComponent implements OnInit {
         this.projectsLoading.set(false);
       },
       error: (err) => {
-        this.error.set(err?.error?.detail ?? 'Failed to load projects');
+        this.projectsError.set(err?.error?.detail ?? 'Failed to load projects');
         this.projectsLoading.set(false);
       },
     });
