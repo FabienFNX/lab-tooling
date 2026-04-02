@@ -1,0 +1,343 @@
+<div class="training-page">
+
+  <!-- ── Tabs ─────────────────────────────────────────────────────────── -->
+  <div class="tabs">
+    <button [class.active]="activeTab() === 'records'" (click)="setTab('records')">
+      📋 Records
+      @if (trainings().length > 0) {
+        <span class="badge">{{ trainings().length }}</span>
+      }
+    </button>
+    <button [class.active]="activeTab() === 'import'" (click)="setTab('import')">
+      📤 Import Excel
+    </button>
+    <button [class.active]="activeTab() === 'dashboard'" (click)="setTab('dashboard')">
+      📊 Dashboard
+    </button>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- RECORDS TAB                                                        -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  @if (activeTab() === 'records') {
+    <div class="tab-panel">
+
+      <!-- Filter bar -->
+      <div class="filter-bar">
+        <input
+          type="text"
+          placeholder="Search by trainee name…"
+          [(ngModel)]="filterName"
+          (keydown.enter)="applyFilters()"
+          class="filter-input"
+        />
+        <select [(ngModel)]="filterType" class="filter-select">
+          <option value="">All types</option>
+          @for (t of trainingTypes; track t) {
+            <option [value]="t">{{ t }}</option>
+          }
+        </select>
+        <select [(ngModel)]="filterStatus" class="filter-select">
+          <option value="">All statuses</option>
+          @for (s of statuses; track s) {
+            <option [value]="s">{{ s }}</option>
+          }
+        </select>
+        <input type="date" [(ngModel)]="filterDateFrom" class="filter-date" title="Start date from" />
+        <input type="date" [(ngModel)]="filterDateTo" class="filter-date" title="Start date to" />
+        <button class="btn-primary" (click)="applyFilters()">Filter</button>
+        <button class="btn-secondary" (click)="clearFilters()">Clear</button>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <button class="btn-primary" (click)="toggleCreateForm()">
+          {{ showCreateForm() ? '✕ Cancel' : '+ New Record' }}
+        </button>
+      </div>
+
+      <!-- Inline create form -->
+      @if (showCreateForm()) {
+        <div class="create-form">
+          <h3>New Training Record</h3>
+          @if (createError()) {
+            <p class="error-msg">{{ createError() }}</p>
+          }
+          @if (createSuccess()) {
+            <p class="success-msg">{{ createSuccess() }}</p>
+          }
+          <div class="form-grid">
+            <label>
+              Trainee name <span class="required">*</span>
+              <input type="text" [(ngModel)]="newRecord.trainee_name" placeholder="e.g. Jane Doe" />
+            </label>
+            <label>
+              Trainee email
+              <input type="email" [(ngModel)]="newRecord.trainee_email" placeholder="jane@example.com" />
+            </label>
+            <label>
+              Training title <span class="required">*</span>
+              <input type="text" [(ngModel)]="newRecord.training_title" placeholder="e.g. Git Advanced" />
+            </label>
+            <label>
+              Type <span class="required">*</span>
+              <select [(ngModel)]="newRecord.training_type">
+                @for (t of trainingTypes; track t) {
+                  <option [value]="t">{{ t }}</option>
+                }
+              </select>
+            </label>
+            <label>
+              Status
+              <select [(ngModel)]="newRecord.status">
+                @for (s of statuses; track s) {
+                  <option [value]="s">{{ s }}</option>
+                }
+              </select>
+            </label>
+            <label>
+              Score (0–100)
+              <input type="number" [(ngModel)]="newRecord.score" min="0" max="100" placeholder="—" />
+            </label>
+            <label>
+              Start date
+              <input type="date" [(ngModel)]="newRecord.start_date" />
+            </label>
+            <label>
+              End date
+              <input type="date" [(ngModel)]="newRecord.end_date" />
+            </label>
+            <label class="full-width">
+              Notes
+              <textarea [(ngModel)]="newRecord.notes" rows="2" placeholder="Optional notes…"></textarea>
+            </label>
+          </div>
+          <div class="form-actions">
+            <button class="btn-primary" [disabled]="createLoading()" (click)="submitCreate()">
+              {{ createLoading() ? 'Saving…' : 'Save' }}
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- Records table -->
+      @if (recordsLoading()) {
+        <p class="loading">Loading records…</p>
+      } @else if (recordsError()) {
+        <p class="error-msg">{{ recordsError() }}</p>
+      } @else if (trainings().length === 0) {
+        <p class="empty-msg">No training records found. Use the form above or import an Excel file.</p>
+      } @else {
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Trainee</th>
+                <th>Title</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Start</th>
+                <th>End</th>
+                <th>Score</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (t of trainings(); track t.id) {
+                <tr>
+                  <td>
+                    <span class="trainee-name">{{ t.trainee_name }}</span>
+                    @if (t.trainee_email) {
+                      <br /><span class="trainee-email">{{ t.trainee_email }}</span>
+                    }
+                  </td>
+                  <td>{{ t.training_title }}</td>
+                  <td><span class="type-badge">{{ t.training_type }}</span></td>
+                  <td><span class="status-badge {{ statusClass(t.status) }}">{{ t.status }}</span></td>
+                  <td>{{ t.start_date ?? '—' }}</td>
+                  <td>{{ t.end_date ?? '—' }}</td>
+                  <td>{{ t.score !== null ? t.score : '—' }}</td>
+                  <td>
+                    <button class="btn-delete" title="Delete" (click)="deleteRecord(t.id)">✕</button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- IMPORT TAB                                                         -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  @if (activeTab() === 'import') {
+    <div class="tab-panel">
+      <h2 class="section-title">Import from Excel</h2>
+      <p class="section-desc">
+        Upload an <strong>.xlsx</strong> file. The first row must contain headers.
+        Required columns: <code>trainee_name</code>, <code>training_title</code>, <code>training_type</code>.
+        Optional: <code>trainee_email</code>, <code>status</code>, <code>start_date</code>,
+        <code>end_date</code>, <code>score</code>, <code>notes</code>.
+      </p>
+
+      <div class="import-zone">
+        <label class="file-label" for="excelFile">
+          📁 {{ importFileName() || 'Choose an Excel file (.xlsx)' }}
+        </label>
+        <input
+          id="excelFile"
+          type="file"
+          accept=".xlsx,.xls"
+          class="file-input-hidden"
+          (change)="onFileChange($event)"
+        />
+      </div>
+
+      @if (importFileName()) {
+        <div class="import-actions">
+          <button class="btn-primary" [disabled]="importLoading()" (click)="submitImport()">
+            {{ importLoading() ? 'Importing…' : 'Import' }}
+          </button>
+        </div>
+      }
+
+      @if (importError()) {
+        <p class="error-msg">{{ importError() }}</p>
+      }
+
+      @if (importResult() !== null) {
+        <div class="import-success">
+          <p class="success-msg">✅ Imported {{ importResult()!.length }} record(s) successfully.</p>
+          <ul class="import-list">
+            @for (r of importResult()!; track r.id) {
+              <li>
+                <strong>{{ r.trainee_name }}</strong> — {{ r.training_title }}
+                <span class="status-badge {{ statusClass(r.status) }}">{{ r.status }}</span>
+              </li>
+            }
+          </ul>
+        </div>
+      }
+
+      <div class="template-hint">
+        <h3>Expected file format</h3>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>trainee_name</th>
+                <th>trainee_email</th>
+                <th>training_title</th>
+                <th>training_type</th>
+                <th>status</th>
+                <th>start_date</th>
+                <th>end_date</th>
+                <th>score</th>
+                <th>notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Jane Doe</td>
+                <td>jane&#64;example.com</td>
+                <td>Git Advanced</td>
+                <td>technical</td>
+                <td>completed</td>
+                <td>2025-01-10</td>
+                <td>2025-01-12</td>
+                <td>92</td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- DASHBOARD TAB                                                      -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  @if (activeTab() === 'dashboard') {
+    <div class="tab-panel">
+      <div class="dash-header">
+        <h2 class="section-title">Training Analytics</h2>
+        <button class="btn-secondary" (click)="loadStats()">↺ Refresh</button>
+      </div>
+
+      @if (statsLoading()) {
+        <p class="loading">Loading statistics…</p>
+      } @else if (statsError()) {
+        <p class="error-msg">{{ statsError() }}</p>
+      } @else if (stats() === null || stats()!.total === 0) {
+        <p class="empty-msg">No training data available yet.</p>
+      } @else {
+        <!-- KPI cards -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <span class="kpi-value">{{ stats()!.total }}</span>
+            <span class="kpi-label">Total Records</span>
+          </div>
+          <div class="kpi-card kpi-green">
+            <span class="kpi-value">{{ stats()!.completed }}</span>
+            <span class="kpi-label">Completed</span>
+          </div>
+          <div class="kpi-card kpi-blue">
+            <span class="kpi-value">{{ stats()!.in_progress }}</span>
+            <span class="kpi-label">In Progress</span>
+          </div>
+          <div class="kpi-card kpi-gray">
+            <span class="kpi-value">{{ stats()!.planned }}</span>
+            <span class="kpi-label">Planned</span>
+          </div>
+          <div class="kpi-card kpi-accent">
+            <span class="kpi-value">{{ stats()!.completion_rate }}%</span>
+            <span class="kpi-label">Completion Rate</span>
+          </div>
+        </div>
+
+        <!-- Charts row -->
+        <div class="charts-row">
+          <!-- By status -->
+          <div class="chart-card">
+            <h3 class="chart-title">By Status</h3>
+            <div class="bar-chart">
+              @for (item of statusBarData(); track item.status) {
+                <div class="bar-row">
+                  <span class="bar-label">{{ item.status }}</span>
+                  <div class="bar-track">
+                    <div
+                      class="bar-fill"
+                      [style.width.%]="item.pct"
+                      [style.background]="item.color"
+                    ></div>
+                  </div>
+                  <span class="bar-count">{{ item.count }}</span>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- By type -->
+          <div class="chart-card">
+            <h3 class="chart-title">By Training Type</h3>
+            <div class="bar-chart">
+              @for (item of typeBarData(); track item.type) {
+                <div class="bar-row">
+                  <span class="bar-label">{{ item.type }}</span>
+                  <div class="bar-track">
+                    <div class="bar-fill bar-fill-type" [style.width.%]="item.pct"></div>
+                  </div>
+                  <span class="bar-count">{{ item.count }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+</div>
