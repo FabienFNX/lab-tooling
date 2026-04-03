@@ -1,0 +1,117 @@
+<section class="recordings-page">
+  <header class="page-header">
+    <h1>Recordings</h1>
+
+    @if (error()) {
+      <div class="banner banner--error" role="alert">{{ error() }}</div>
+    }
+  </header>
+
+  <!-- Record controls -->
+  <div class="record-controls card">
+    <h2>Capture system audio</h2>
+    <p class="hint">Windows only — uses WASAPI loopback to capture system audio.</p>
+
+    @if (!isRecording()) {
+      <button class="btn btn--primary btn--record" (click)="startRecording()" type="button">
+        &#9679; Start Recording
+      </button>
+    } @else {
+      <button
+        class="btn btn--danger"
+        (click)="stopRecording(activeRecording()!)"
+        type="button"
+      >
+        &#9632; Stop Recording
+      </button>
+      <span class="recording-indicator" aria-live="polite">Recording…</span>
+    }
+  </div>
+
+  <!-- Upload zone -->
+  <div
+    class="upload-zone card"
+    [class.drag-over]="dragOver()"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave()"
+    (drop)="onDrop($event)"
+    role="region"
+    aria-label="Upload audio file"
+  >
+    <h2>Upload audio file</h2>
+    <p class="hint">Drag &amp; drop an audio file here, or click to browse.</p>
+
+    <label class="upload-label" for="file-input">
+      @if (uploading()) {
+        <span class="uploading">Uploading…</span>
+      } @else {
+        <span class="btn btn--secondary">Choose file</span>
+      }
+    </label>
+    <input
+      id="file-input"
+      type="file"
+      accept="audio/*,video/*"
+      class="visually-hidden"
+      (change)="onFileSelected($event)"
+    />
+
+    @if (uploadError()) {
+      <p class="error-text" role="alert">{{ uploadError() }}</p>
+    }
+  </div>
+
+  <!-- Recordings list -->
+  <section class="recordings-list">
+    <h2>All recordings</h2>
+
+    @if (loading()) {
+      <p class="hint">Loading…</p>
+    } @else if (recordings().length === 0) {
+      <p class="hint">No recordings yet. Start a new one or upload a file.</p>
+    } @else {
+      <table class="data-table" aria-label="Recordings">
+        <thead>
+          <tr>
+            <th scope="col">Session</th>
+            <th scope="col">Status</th>
+            <th scope="col">Duration</th>
+            <th scope="col">Started</th>
+            <th scope="col">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (rec of recordings(); track rec.id) {
+            <tr
+              class="recording-row"
+              [class.row--active]="rec.status === 'recording'"
+              (click)="openDetail(rec)"
+              role="button"
+              tabindex="0"
+              [attr.aria-label]="'Open recording ' + rec.session_id"
+              (keydown.enter)="openDetail(rec)"
+              (keydown.space)="openDetail(rec)"
+            >
+              <td class="col-session">{{ rec.session_id }}</td>
+              <td><span class="badge badge--{{ rec.status }}">{{ rec.status }}</span></td>
+              <td>{{ formatDuration(rec.duration_seconds) }}</td>
+              <td>{{ rec.started_at ? (rec.started_at | date: 'dd/MM/yy HH:mm') : '—' }}</td>
+              <td class="col-actions" (click)="$event.stopPropagation()" role="cell">
+                @if (rec.status === 'recording') {
+                  <button class="btn btn--sm btn--danger" (click)="stopRecording(rec)" type="button">Stop</button>
+                }
+                @if (canTranscribe(rec)) {
+                  <button class="btn btn--sm btn--primary" (click)="transcribe(rec)" type="button">Transcribe</button>
+                }
+                @if (canProcess(rec)) {
+                  <button class="btn btn--sm btn--secondary" (click)="openDetail(rec)" type="button">Process</button>
+                }
+                <button class="btn btn--sm btn--ghost" (click)="deleteRecording(rec)" type="button" aria-label="Delete recording">✕</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </section>
+</section>

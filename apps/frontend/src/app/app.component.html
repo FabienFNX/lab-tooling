@@ -5,6 +5,7 @@
       <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Home</a>
       <a routerLink="/gitlab" routerLinkActive="active">GitLab</a>
       <a routerLink="/training" routerLinkActive="active">Training</a>
+      <a routerLink="/recordings" routerLinkActive="active">Recordings</a>
     </nav>
     <div class="health" [class.ok]="healthStatus === 'ok'" [class.error]="healthStatus !== 'ok' && healthStatus !== ''">
       <span>Backend: {{ healthStatus || 'checking…' }}</span>

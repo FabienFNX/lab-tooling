@@ -1,4 +1,4 @@
-from sqlalchemy import CheckConstraint, Column, Float, Integer, String
+from sqlalchemy import CheckConstraint, Column, DateTime, Float, Integer, String, Text
 from app.db.database import Base
 
 
@@ -38,3 +38,22 @@ class Training(Base):
     end_date = Column(String, nullable=True)                # ISO date string YYYY-MM-DD
     score = Column(Float, nullable=True)                    # 0-100 enforced by CheckConstraint + Pydantic
     notes = Column(String, nullable=True)
+
+
+class Recording(Base):
+    """Stores audio recording sessions with their processing state."""
+
+    __tablename__ = "recordings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(String, unique=True, nullable=False, index=True)   # YYYYMMDD_HHMMSS
+    status = Column(String, nullable=False, default="recording")           # recording/stopped/transcribing/transcribed/processing/processed/error
+    started_at = Column(DateTime, nullable=True)
+    stopped_at = Column(DateTime, nullable=True)
+    duration_seconds = Column(Float, nullable=True)
+    audio_file = Column(String, nullable=True)                             # filename within session dir
+    transcript_text = Column(Text, nullable=True)
+    processed_text = Column(Text, nullable=True)
+    notion_page_id = Column(String, nullable=True)
+    notion_url = Column(String, nullable=True)
+    error_message = Column(Text, nullable=True)

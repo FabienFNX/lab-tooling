@@ -1,0 +1,81 @@
+@if (loading()) {
+  <p class="hint">Loading…</p>
+} @else if (error()) {
+  <div class="banner banner--error" role="alert">{{ error() }}</div>
+} @else if (recording(); as rec) {
+  <section class="detail-page">
+    <header class="page-header">
+      <button class="btn btn--ghost back-btn" (click)="goBack()" type="button">← Recordings</button>
+      <h1>{{ rec.session_id }}</h1>
+      <span class="badge badge--{{ rec.status }}">{{ rec.status }}</span>
+      @if (isInProgress()) {
+        <span class="in-progress-hint" aria-live="polite">Processing, auto-refreshing…</span>
+      }
+    </header>
+
+    @if (actionError()) {
+      <div class="banner banner--error" role="alert">{{ actionError() }}</div>
+    }
+
+    <!-- Metadata -->
+    <div class="card meta-card">
+      <dl class="meta-grid">
+        <dt>Duration</dt><dd>{{ formatDuration(rec.duration_seconds) }}</dd>
+        <dt>Started</dt><dd>{{ rec.started_at ?? '—' }}</dd>
+        <dt>Stopped</dt><dd>{{ rec.stopped_at ?? '—' }}</dd>
+        <dt>Audio file</dt><dd>{{ rec.audio_file ?? '—' }}</dd>
+        @if (rec.notion_url) {
+          <dt>Notion</dt>
+          <dd><a [href]="rec.notion_url" target="_blank" rel="noopener noreferrer">Open page ↗</a></dd>
+        }
+        @if (rec.error_message) {
+          <dt>Error</dt><dd class="error-text">{{ rec.error_message }}</dd>
+        }
+      </dl>
+    </div>
+
+    <!-- Actions -->
+    <div class="card actions-card">
+      <h2>Actions</h2>
+      <div class="action-row">
+        @if (canTranscribe()) {
+          <button class="btn btn--primary" (click)="transcribe()" type="button">
+            Transcribe
+          </button>
+        }
+      </div>
+
+      @if (canProcess()) {
+        <form [formGroup]="processForm" (ngSubmit)="process()" class="process-form">
+          <h3>Generate meeting summary</h3>
+          <label for="notion-id">Notion page ID <em>(optional — paste to push summary there)</em></label>
+          <input
+            id="notion-id"
+            type="text"
+            formControlName="notion_page_id"
+            placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+            class="input"
+            autocomplete="off"
+          />
+          <button class="btn btn--secondary" type="submit">Generate summary</button>
+        </form>
+      }
+    </div>
+
+    <!-- Transcript -->
+    @if (rec.transcript_text) {
+      <div class="card">
+        <h2>Transcript</h2>
+        <pre class="text-content">{{ rec.transcript_text }}</pre>
+      </div>
+    }
+
+    <!-- Processed summary -->
+    @if (rec.processed_text) {
+      <div class="card">
+        <h2>Meeting Summary</h2>
+        <pre class="text-content">{{ rec.processed_text }}</pre>
+      </div>
+    }
+  </section>
+}

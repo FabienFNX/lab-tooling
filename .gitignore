@@ -55,3 +55,5 @@ venv/
 
 # Environment
 .env
+
+apps/backend/data/
